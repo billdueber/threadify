@@ -119,6 +119,8 @@ module Threadify
       rv
     end
 
+
+
     def each(block = nil, do_yield: false, &blk)
       @block   = (block or blk)
       last_val = nil
@@ -151,4 +153,16 @@ module Threadify
   end
 end
 
+
+te = Threadify::Enumerator.new(1..10)
+
+def hello
+  te.each do |x|
+    sleep(0.1)
+    return "hello" if x == 8
+  end
+end
+
+x = hello
+puts x
 
