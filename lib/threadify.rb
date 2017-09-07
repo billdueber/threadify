@@ -28,17 +28,7 @@ module Threadify
     end
 
     def full?
-      size > 4
-    end
-
-    def next_or_raise
-      val = self.next
-
-      if val == 'ddddd'
-        raise "oops!"
-      else
-        val
-      end
+      size > 15
     end
 
     def values_ready?
@@ -73,7 +63,7 @@ module Threadify
       Concurrent::ThreadPoolExecutor.new(
         fallback_policy: :caller_runs,
         max_threads:     5,
-        max_queue:       10
+        max_queue:       15
       )
     end
 
@@ -107,7 +97,6 @@ module Threadify
         raise val.error, val.error.message, val.error.backtrace
       when Threadify::Break
         throw :break
-        :borken
       else
         val
       end
@@ -126,7 +115,7 @@ module Threadify
       last_val = nil
       catch :break do
         @enum.each do |x|
-          while @q.values_ready?
+          while @q.values_ready? or @q.full?
             last_val = pull_a_value
             if do_yield
               yield last_val
@@ -152,17 +141,4 @@ module Threadify
 
   end
 end
-
-
-te = Threadify::Enumerator.new(1..10)
-
-def hello
-  te.each do |x|
-    sleep(0.1)
-    return "hello" if x == 8
-  end
-end
-
-x = hello
-puts x
 

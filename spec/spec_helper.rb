@@ -17,6 +17,7 @@
 
 require 'bundler/setup'
 require 'threadify'
+require 'shared_stuff'
 
 RSpec.configure do |config|
 
