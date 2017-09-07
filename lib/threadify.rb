@@ -29,7 +29,7 @@ module Threadify
     end
 
     def full?
-      size > max_size
+      size > @max_size
     end
 
     def values_ready?
