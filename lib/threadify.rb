@@ -23,12 +23,13 @@ module Threadify
 
     def_delegators :@q, :push, :shift, :first, :size, :empty?, :each, :map
 
-    def initialize
-      @q = Concurrent::Array.new
+    def initialize(max_size: 15)
+      @q        = Concurrent::Array.new
+      @max_size = max_size
     end
 
     def full?
-      size > 15
+      size > max_size
     end
 
     def values_ready?
@@ -59,18 +60,20 @@ module Threadify
       self.new(enum).enum_for(:each)
     end
 
-    def executor
+    def executor(threads: 5, max_queue: 15)
       Concurrent::ThreadPoolExecutor.new(
         fallback_policy: :caller_runs,
-        max_threads:     5,
-        max_queue:       15
+        min_threads:     threads,
+        max_threads:     threads,
+        max_queue:       max_queue
       )
     end
 
-    def initialize(enumerable)
+    def initialize(enumerable, max_queue: nil, threads: Concurrent.processor_count)
+      max_queue ||= threads * 5
       @enum     = enumerable
-      @q        = PromiseQueue.new
-      @executor = self.executor
+      @q        = PromiseQueue.new(max_size: max_queue)
+      @executor = self.executor(threads: threads, max_queue: max_queue)
     end
 
     def callify(x)
@@ -109,7 +112,6 @@ module Threadify
     end
 
 
-
     def each(block = nil, do_yield: false, &blk)
       @block   = (block or blk)
       last_val = nil
@@ -136,7 +138,9 @@ module Threadify
         end
       end
       last_val
-
+    ensure
+      @executor.shutdown
+      @executor.wait_for_termination
     end
 
   end
