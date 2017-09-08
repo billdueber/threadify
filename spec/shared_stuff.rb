@@ -1,4 +1,5 @@
 require 'concurrent'
+require 'threadify'
 
 RSpec.configure do |rspec|
   rspec.shared_context_metadata_behavior = :apply_to_host_groups
@@ -11,8 +12,7 @@ RSpec.shared_context "shared stuff", :shared_context => :metadata do
   let(:slow_value) {8}
   let(:wait_time) { 0.2 }
   let(:threads) { Concurrent.processor_count }
-  let(:te) {Threadify::Enumerator.new(enum, threads: threads)}
-
+  let(:te) {Threadify::Enumerator.new(enum)}
 
 end
 

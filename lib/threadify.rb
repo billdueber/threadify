@@ -1,75 +1,12 @@
 require "threadify/version"
+require 'threadify/errors'
+require 'threadify/promise_queue'
+require 'threadify/executor'
+
 require 'concurrent'
-require 'forwardable'
 
 
 module Threadify
-
-  # A couple classes to represent non-normal
-  # exits
-
-  class Break; end
-  class Return
-    attr_reader :value
-    def initialize(val)
-      @value = val
-    end
-  end
-
-  # Grab all the necessary info from
-  # an error for reporting and re-raising
-  class Error
-    attr_reader :args, :error
-
-    def initialize(args, error)
-      @args  = args
-      @error = error
-    end
-  end
-
-  # A simple abstraction over an array that allows
-  # us to determine what the state of the pending
-  # promises are. We can't use a regular ruby Queue
-  # because it's important that we can peek
-  # at the first value without popping it off
-  # the stack or blocking
-
-  class PromiseQueue
-
-    # We only need a few methods from array, so we'll just use those
-    # to avoid getting an enormous surface area
-
-    extend Forwardable
-    def_delegators :@q, :push, :shift, :first, :size, :empty?, :each, :map
-
-    def initialize(max_size: Concurrent.processor_count * 4)
-      @q        = [] # Concurrent::Array.new
-      @max_size = max_size
-    end
-
-    def full?
-      size > @max_size
-    end
-
-    def values_ready?
-      !@q.empty? and @q.first.complete?
-    end
-
-    def errored?
-      !@q.empty? and @q.first.rejected?
-    end
-
-    def error
-      @q.first.reason
-    end
-
-    def next
-      p = self.shift
-      p.value
-    end
-
-  end
-
 
   class Enumerator
 
@@ -79,20 +16,11 @@ module Threadify
       self.new(enum).enum_for(:each)
     end
 
-    def executor(threads: 5, max_queue: 15)
-      Concurrent::ThreadPoolExecutor.new(
-        fallback_policy: :caller_runs,
-        min_threads:     threads,
-        max_threads:     threads,
-        max_queue:       max_queue
-      )
-    end
-
-    def initialize(enumerable, max_queue: nil, threads: Concurrent.processor_count)
+    def initialize(enumerable, max_queue: Concurrent.processor_count * 5, executor: nil, threads: Concurrent.processor_count)
       max_queue ||= threads * 5
       @enum     = enumerable
       @q        = PromiseQueue.new(max_size: max_queue)
-      @executor = self.executor(threads: threads, max_queue: max_queue)
+      @executor = executor || IOBoundExecutor.new(threads: threads)
     end
 
     def callify(x)

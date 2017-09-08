@@ -12,7 +12,7 @@ RSpec.describe Threadify::Enumerator do
   describe "other enumerable methods" do
 
     it "can inject with order-independent code" do
-      skip
+      skip "Need to code up all the possibilities for inject method arguments"
       expect(te.inject(&:+)).to be(enum.sum)
     end
 
@@ -21,12 +21,13 @@ RSpec.describe Threadify::Enumerator do
     end
 
     it "does each_with_index" do
-      # skip "Need to do this one 'by hand' as well. The index is shared memory"
+      skip "Need to do this one 'by hand' as well. The index is shared memory"
       ewi = Threadify::Enumerator.new(1..10)
       a = []
       ewi.each_with_index {|v, i| a << [v, i + 1] }
       expect(a).to eq((1..10).map{|x| [x, x]})
     end
+
 
   end
 

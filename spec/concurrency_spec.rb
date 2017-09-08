@@ -18,13 +18,13 @@ RSpec.describe "Threadify concurrancy" do
   end
   
   it "runs N x-second sleeps in about x seconds where N < #threads" do
-    fiver    = Threadify::Enumerator.new(1..(threads - 1))
+    fiver    = Threadify::Enumerator.new(1..(threads - 1), threads: threads))
     realtime = Benchmark.realtime {fiver.each {|x| sleep(wait_time)}}
     expect(realtime).to be_within(0.02).of(wait_time)
   end
 
   it "takes longer if the threads run out" do
-    longer = Threadify::Enumerator.new(1..(threads * 3 - 1))
+    longer = Threadify::Enumerator.new(1..(threads * 3 - 1), threads: threads)
     realtime = Benchmark.realtime {longer.each {|x| sleep(wait_time)}}
     expect(realtime).to be_within(realtime * 0.20).of(3 * wait_time)
   end
