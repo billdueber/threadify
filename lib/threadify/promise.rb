@@ -10,10 +10,8 @@ module Threadify
   #    and then continue running the rest of the calling method
 
   class Promise
-
-
-    def self.new(block, x)
-      Concurrent::Promise.execute(executor: @executor, args: x) do |y|
+    def self.new(args:, executor:, block:)
+      Concurrent::Promise.execute(executor: executor, args: args) do |y|
         evaluate_in_promise(block, y)
       end
     end

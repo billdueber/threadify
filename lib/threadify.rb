@@ -1,6 +1,7 @@
 require "threadify/version"
 require 'threadify/errors'
 require 'threadify/promise_queue'
+require 'threadify/promise'
 require 'threadify/executor'
 
 require 'concurrent'
@@ -86,11 +87,6 @@ module Threadify
         end
 
       end
-
-
-
-
-
     end
 
 
@@ -105,7 +101,7 @@ module Threadify
               yield last_val
             end
           end
-          @q.push promise(x)
+          @q.push Threadify::Promise.new(args: x, executor: @executor, block: @block)
         end
       end
 
