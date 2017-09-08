@@ -11,7 +11,7 @@ RSpec.shared_context "shared stuff", :shared_context => :metadata do
   let(:slow_value) {8}
   let(:wait_time) { 0.2 }
   let(:threads) { Concurrent.processor_count }
-  let(:te) {Threadify::Enumerator.new(enum)}
+  let(:te) {Threadify::Enumerator.new(enum, threads: threads)}
 
 
 end

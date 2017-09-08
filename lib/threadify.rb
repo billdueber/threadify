@@ -5,9 +5,19 @@ require 'forwardable'
 
 module Threadify
 
-  class Break;
+  # A couple classes to represent non-normal
+  # exits
+
+  class Break; end
+  class Return
+    attr_reader :value
+    def initialize(val)
+      @value = val
+    end
   end
 
+  # Grab all the necessary info from
+  # an error for reporting and re-raising
   class Error
     attr_reader :args, :error
 
@@ -17,14 +27,23 @@ module Threadify
     end
   end
 
+  # A simple abstraction over an array that allows
+  # us to determine what the state of the pending
+  # promises are. We can't use a regular ruby Queue
+  # because it's important that we can peek
+  # at the first value without popping it off
+  # the stack or blocking
+
   class PromiseQueue
 
-    extend Forwardable
+    # We only need a few methods from array, so we'll just use those
+    # to avoid getting an enormous surface area
 
+    extend Forwardable
     def_delegators :@q, :push, :shift, :first, :size, :empty?, :each, :map
 
-    def initialize(max_size: 15)
-      @q        = Concurrent::Array.new
+    def initialize(max_size: Concurrent.processor_count * 4)
+      @q        = [] # Concurrent::Array.new
       @max_size = max_size
     end
 
@@ -109,6 +128,31 @@ module Threadify
       rv = []
       self.each(blk, do_yield: true) {|x| rv << x}
       rv
+    end
+
+    # need to work around each_with_index a little bit
+    def each_with_index(&blk)
+      index =  Concurrent::AtomicFixnum.new(-1)
+      identity = Proc.new{|x| [x, index.increment]}
+      self.each(identity, do_yield: true, &blk)
+    end
+
+    # Enumerable#count can't be parallelized, so
+    # we'll fake it
+    def count
+      @enum.count
+    end
+
+    # Enumerable#inject also isn't so hot, so
+    # we'll fake *that*, too
+    #
+    # Geez. So many argument combinations :-(
+    # https://ruby-doc.org/core-2.4.1/Enumerable.html#method-i-inject
+    #
+    # inject(initial_value = first_value, symbol=nil, &blk)
+
+    def inject(obj = self.object_id, &blk)
+      raise "Bit the bullet and implement this"
     end
 
 
