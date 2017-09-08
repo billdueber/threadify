@@ -12,10 +12,6 @@ module Threadify
 
     include Enumerable
 
-    def self.from(enum)
-      self.new(enum).enum_for(:each)
-    end
-
     def initialize(enumerable, max_queue: Concurrent.processor_count * 5, executor: nil, threads: Concurrent.processor_count)
       max_queue ||= threads * 5
       @enum     = enumerable
