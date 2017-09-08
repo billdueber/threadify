@@ -3,6 +3,15 @@ module Threadify
   # A couple classes to represent non-normal
   # exits
 
+  class BreakFlow
+    attr_reader :type, :args, :error
+    def initialize(type, args, error)
+      @type = type
+      @error = error
+    end
+  end
+
+
   class Break; end
   class Return
     attr_reader :value

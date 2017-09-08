@@ -12,6 +12,10 @@ module Threadify
 
     include Enumerable
 
+
+
+
+
     def initialize(enumerable, max_queue: Concurrent.processor_count * 5, executor: nil, threads: Concurrent.processor_count)
       max_queue ||= threads * 5
       @enum     = enumerable
@@ -23,18 +27,6 @@ module Threadify
       @block.call(x)
     end
 
-    def promise(x)
-      Concurrent::Promise.execute(executor: @executor, args: x) do |y|
-        begin
-          val = callify(y);
-          val
-        rescue LocalJumpError
-          Break.new
-        rescue => e
-          Error.new(x, e)
-        end
-      end
-    end
 
     def pull_a_value
       val = @q.next
@@ -54,13 +46,6 @@ module Threadify
       rv
     end
 
-    # need to work around each_with_index a little bit
-    def each_with_index(&blk)
-      index =  Concurrent::AtomicFixnum.new(-1)
-      identity = Proc.new{|x| [x, index.increment]}
-      self.each(identity, do_yield: true, &blk)
-    end
-
     # Enumerable#count can't be parallelized, so
     # we'll fake it
     def count
@@ -77,6 +62,35 @@ module Threadify
 
     def inject(obj = self.object_id, &blk)
       raise "Bit the bullet and implement this"
+    end
+
+
+
+    # We'll do everything via each_with_index because the index that
+    # get passed along is mutable if we just go through #each. Instead,
+    # just implement #each in terms of #each_with_index and throw away
+    # the index when yielding
+
+    def each_with_index(block = nil, do_yield: false, &blk)
+      return enum_for(:each_with_index) unless block_given?
+
+      # We want to track the last value yielded (or computed)
+      most_recently_shifted_val = nil
+
+      catch :break do
+        @enum.each_with_index do |x, i|
+          while @q.needs_emptying? do
+            most_recently_shifted_val = pull_a_value
+
+          end
+        end
+
+      end
+
+
+
+
+
     end
 
 

@@ -22,6 +22,10 @@ module Threadify
       @max_size = max_size
     end
 
+    def needs_emptying?
+      full? or values_ready?
+    end
+
     def full?
       size > @max_size
     end
@@ -41,6 +45,19 @@ module Threadify
     def next
       p = self.shift
       p.value
+    end
+
+
+    def pull_a_value
+      val = @q.next
+      case val
+      when Threadify::Error
+        raise val.error, val.error.message, val.error.backtrace
+      when Threadify::Break
+        throw :break
+      else
+        val
+      end
     end
 
   end
