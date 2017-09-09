@@ -42,14 +42,9 @@ module Threadify
       @q.first.reason
     end
 
-    def next
-      p = self.shift
-      p.value
-    end
 
-
-    def pull_a_value
-      val = @q.next
+    def force_next_evaluation
+      val = self.shift.value
       case val
       when Threadify::Error
         raise val.error, val.error.message, val.error.backtrace

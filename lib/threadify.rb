@@ -24,23 +24,6 @@ module Threadify
       @executor = executor || IOBoundExecutor.new(threads: threads)
     end
 
-    def callify(x)
-      @block.call(x)
-    end
-
-
-    def pull_a_value
-      val = @q.next
-      case val
-      when Threadify::Error
-        raise val.error, val.error.message, val.error.backtrace
-      when Threadify::Break
-        throw :break
-      else
-        val
-      end
-    end
-
     def map(&blk)
       rv = []
       self.each(blk, do_yield: true) {|x| rv << x}
@@ -96,12 +79,12 @@ module Threadify
       catch :break do
         @enum.each do |x|
           while @q.values_ready? or @q.full?
-            last_val = pull_a_value
+            last_val = @q.force_next_evaluation
             if do_yield
               yield last_val
             end
           end
-          @q.push Threadify::Promise.new(args: x, executor: @executor, block: @block)
+          @q.push Threadify::Promise.from(args: x, executor: @executor, block: @block)
         end
       end
 
@@ -109,7 +92,7 @@ module Threadify
       # Will raise if it needs raising
       catch :break do
         until @q.empty?
-          last_val = pull_a_value
+          last_val = @q.force_next_evaluation
           if do_yield
             yield last_val
           end
