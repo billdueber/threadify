@@ -46,12 +46,12 @@ module Threadify
 
     def map(&blk)
       rv = []
-      self.each_with_index(blk, do_yield: true) {|x, _| rv << x}
+      self.ewi(blk, do_yield: true) {|x, _| rv << x}
       rv
     end
 
     def each(&blk)
-      self.each_with_index(blk) {|x, i| x }
+      self.ewi(blk) {|x, i| x }
     end
 
 
@@ -60,7 +60,11 @@ module Threadify
     # just implement #each in terms of #each_with_index and throw away
     # the index when yielding
 
-    def each_with_index(block = nil, do_yield: false, &blk)
+    def each_with_index(&blk)
+      self.ewi(blk) {|x, i| x }
+    end
+
+    def ewi(block = nil, do_yield: true, &blk)
       @block   = (block or blk)
       last_val = nil
       catch :break do

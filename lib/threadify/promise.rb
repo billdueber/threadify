@@ -14,14 +14,16 @@ module Threadify
     def fill(v, i)
       @val = v
       @i   = i
+      self
     end
   end
 
   class Promise
     def self.from(args:, index: , executor:, block:)
       emptyvi = VI.new
-      Concurrent::Promise.execute(executor: executor, args: [block, emptyvi, args, index.dup]) do |b, vi, y, i|
+      Concurrent::Promise.execute(executor: executor, args: [block, emptyvi, args, index]) do |b, vi, y, i|
         vi.fill(evaluate_in_promise(b, y, i), i)
+        # vi.fill(1,1)
         vi
       end
     end
