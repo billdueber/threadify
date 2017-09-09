@@ -77,14 +77,14 @@ module Threadify
       @block   = (block or blk)
       last_val = nil
       catch :break do
-        @enum.each do |x|
+        @enum.each_with_index do |x, i|
           while @q.values_ready? or @q.full?
             last_val = @q.force_next_evaluation
             if do_yield
-              yield last_val
+              yield last_val.value
             end
           end
-          @q.push Threadify::Promise.from(args: x, executor: @executor, block: @block)
+          @q.push Threadify::Promise.from(args: x, index: i, executor: @executor, block: @block)
         end
       end
 
@@ -94,11 +94,11 @@ module Threadify
         until @q.empty?
           last_val = @q.force_next_evaluation
           if do_yield
-            yield last_val
+            yield last_val.val
           end
         end
       end
-      last_val
+      last_val.val
     ensure
       @executor.shutdown
       @executor.wait_for_termination

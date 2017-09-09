@@ -9,10 +9,19 @@ module Threadify
   #  - a Threadify::Break object that just says to break out of the loop
   #    and then continue running the rest of the calling method
 
+  class VI
+    attr_reader :val, :i
+    def initialize(v, i)
+      @val = v
+      @i   = i
+    end
+  end
+
   class Promise
-    def self.from(args:, executor:, block:)
-      Concurrent::Promise.execute(executor: executor, args: args) do |y|
-        evaluate_in_promise(block, y)
+    def self.from(args:, index: , executor:, block:)
+      Concurrent::Promise.execute(executor: executor, args: [args, index.dup]) do |a|
+        y,i = *a
+        VI.new(evaluate_in_promise(block, y), i)
       end
     end
 
