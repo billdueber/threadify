@@ -44,7 +44,8 @@ module Threadify
 
 
     def force_next_evaluation
-      val = self.shift.value
+      elem = self.shift
+      val = elem.value
       case val
       when Threadify::Error
         raise val.error, val.error.message, val.error.backtrace

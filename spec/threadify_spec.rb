@@ -21,10 +21,10 @@ RSpec.describe Threadify::Enumerator do
     end
 
     it "does each_with_index" do
-      skip "Need to do this one 'by hand' as well. The index is shared memory"
+      # skip "Need to do this one 'by hand' as well. The index is shared memory"
       ewi = Threadify::Enumerator.new(1..10)
-      a = []
-      ewi.each_with_index {|v, i| a << [v, i + 1] }
+      a = Concurrent::Array.new
+      ewi.each_with_index {|v, i| a << [i + 1, v] }
       expect(a).to eq((1..10).map{|x| [x, x]})
     end
 

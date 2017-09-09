@@ -24,12 +24,6 @@ module Threadify
       @executor = executor || IOBoundExecutor.new(threads: threads)
     end
 
-    def map(&blk)
-      rv = []
-      self.each(blk, do_yield: true) {|x| rv << x}
-      rv
-    end
-
     # Enumerable#count can't be parallelized, so
     # we'll fake it
     def count
@@ -50,30 +44,23 @@ module Threadify
 
 
 
+    def map(&blk)
+      rv = []
+      self.each_with_index(blk, do_yield: true) {|x, _| rv << x}
+      rv
+    end
+
+    def each(&blk)
+      self.each_with_index(blk) {|x, i| x }
+    end
+
+
     # We'll do everything via each_with_index because the index that
     # get passed along is mutable if we just go through #each. Instead,
     # just implement #each in terms of #each_with_index and throw away
     # the index when yielding
 
     def each_with_index(block = nil, do_yield: false, &blk)
-      return enum_for(:each_with_index) unless block_given?
-
-      # We want to track the last value yielded (or computed)
-      most_recently_shifted_val = nil
-
-      catch :break do
-        @enum.each_with_index do |x, i|
-          while @q.needs_emptying? do
-            most_recently_shifted_val = pull_a_value
-
-          end
-        end
-
-      end
-    end
-
-
-    def each(block = nil, do_yield: false, &blk)
       @block   = (block or blk)
       last_val = nil
       catch :break do
@@ -81,7 +68,7 @@ module Threadify
           while @q.values_ready? or @q.full?
             last_val = @q.force_next_evaluation
             if do_yield
-              yield last_val.value
+              yield last_val.val, last_val.i
             end
           end
           @q.push Threadify::Promise.from(args: x, index: i, executor: @executor, block: @block)
@@ -94,7 +81,7 @@ module Threadify
         until @q.empty?
           last_val = @q.force_next_evaluation
           if do_yield
-            yield last_val.val
+            yield last_val.val, last_val.i
           end
         end
       end

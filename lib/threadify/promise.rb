@@ -11,7 +11,7 @@ module Threadify
 
   class VI
     attr_reader :val, :i
-    def initialize(v, i)
+    def fill(v, i)
       @val = v
       @i   = i
     end
@@ -19,19 +19,21 @@ module Threadify
 
   class Promise
     def self.from(args:, index: , executor:, block:)
-      Concurrent::Promise.execute(executor: executor, args: [args, index.dup]) do |a|
-        y,i = *a
-        VI.new(evaluate_in_promise(block, y), i)
+      emptyvi = VI.new
+      Concurrent::Promise.execute(executor: executor, args: [block, emptyvi, args, index.dup]) do |b, vi, y, i|
+        vi.fill(evaluate_in_promise(b, y, i), i)
+        vi
       end
     end
 
-    def self.evaluate_in_promise(block, args)
-      block.call(args)
+    def self.evaluate_in_promise(block, y, i)
+      v = block.call(y,i)
+      v
     rescue LocalJumpError => e
       #:break, :redo, :retry, :next, :return, or :noreason
-      BreakFlow.new(e.reason, y, e)
+      BreakFlow.new(e.reason, args, e)
     rescue => e
-      Error.new(y, e)
+      Error.new(args, e)
     end
   end
 
