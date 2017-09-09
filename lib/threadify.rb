@@ -61,7 +61,8 @@ module Threadify
     # the index when yielding
 
     def each_with_index(&blk)
-      self.ewi(blk) {|x, i| x }
+      identify = Proc.new{|x| x}
+      self.ewi(identity, &blk)
     end
 
     def ewi(block = nil, do_yield: true, &blk)
